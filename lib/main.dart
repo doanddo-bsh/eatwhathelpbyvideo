@@ -89,6 +89,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   // 저거 보고 짤리스트의 초기 5개 확인해서 없으면 url 추가
   // 짤리스트 추가되면 기존거 지우고 새거 저장
 
+  // firestore - 파일명 리스트 가져오기
   Future<List<String>> _loadFirestore(db) async{
 
     List<String> gifNameList = [];
