@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1011007104549",
+    "project_id": "eatwhathelpbyvideo",
+    "storage_bucket": "eatwhathelpbyvideo.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011007104549:android:4dc58a969bb3a1dabd81cc",
+        "android_client_info": {
+          "package_name": "com.example.eatwhathelpbyvideo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAglr9GlPr1daZjCCONvwCZiwG3dOyfZXE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
