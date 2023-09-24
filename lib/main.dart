@@ -5,9 +5,9 @@ import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'auth.dart';
-// import 'package:async/async.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'package:expandable_text/expandable_text.dart';
 
 void main() async {
   // 비동기 되게 하는 문장
@@ -112,11 +112,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       // 전역변수에 넣어주기
       gifNameList = gifNameList_tmp;
 
-      setState(() {
-        // 불러왔다는걸 알려주기
-        gifNameListCalled = true;
-      });
-
       // gif name 순서 변경(shuffle) 및 10배 뻥튀기
       for (var i=0;i<10;i++){
         gifNameList.shuffle();
@@ -126,73 +121,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     } else {
       // firestore에서 불러온 데이터가 null인 경우
       gifNameList = [];
+      gifNameListFinal = [];
     }
   }
 
-  void initWorkAll(db) async {
-    await authAnon();
-    await _loadFirestore(db);
-  }
-
-
-
-
-  late String urlNow;
-
-  int urlIndex = 0;
-
-
-  // local data
-  // flutter_secure_storage
-  Map<String, dynamic> nameUrlDataLocal = {};
-  String? nameUrlDataLocalString = '';
-  bool callUrl = false;
-  bool haveUrl = false;
-
-
-
-
-
-  // Create a storage reference from our app
-  final storageRef = FirebaseStorage.instance.ref();
-
-  // read firebase storage
-  Future<String> _readStorage(String gifName) async {
-    print('url 호출 $gifName');
-    final pathReference = storageRef.child("version_001/$gifName");
-    final _url = await pathReference.getDownloadURL();
-    callUrl = true;
-
-    return _url;
-  }
-
-  // urlIndex 부터 +5까지
-  void _readStorageProactive() async {
-    print('_readStorageProactive work');
-    // gifNameList 불러오고 실행
-    if (gifNameListCalled){
-      for (var i = 0;i < 5;i ++){
-        // urlIndex 부터 urlIndex + 4까지 5개 검사. 없으면 실행
-        if (!nameUrlDataLocal.keys.contains(gifNameListFinal[urlIndex + i])){
-          var gifName = gifNameListFinal[urlIndex + i];
-          print('call url $gifName');
-          final pathReference = storageRef.child("version_001/$gifName");
-          final _url = await pathReference.getDownloadURL();
-          nameUrlDataLocal[gifName] = _url.toString();
-          callUrl = true;
-        }
-      }
-    }
-  }
-
+// 3. local url 불러오기
   //flutter_secure_storage 사용을 위한 초기화 작업
   static final storage = new FlutterSecureStorage();
+  Map<String, dynamic> nameUrlDataLocal = {};
+  String? nameUrlDataLocalString = '';
 
-  void _deleteFlutterSecureStorage(String key) async {
-    await storage.delete(key: key);
-  }
-
-  void _callNameUrlDataLocal() async {
+  Future<void> _callNameUrlDataLocal() async {
     print('_callNameUrlDataLocal');
     // read 함수를 통하여 key값에 맞는 정보를 불러오게 됩니다. 이때 불러오는 결과의 타입은 String 타입임을 기억해야 합니다.
     // (데이터가 없을때는 null을 반환을 합니다.)
@@ -207,36 +146,60 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
   }
 
-  void _writeNameUrlDataLocal(nameUrlDataLocal) async {
-    print('_writeNameUrlDataLocal work');
-    String _nameUrlDataLocalString = json.encode(nameUrlDataLocal);
+  // 4. gif file 명 index 0~4 가 local url에 있는지 확인
+  // 5. 없으면 firebase storage 에서 불러오고 local url에 저장
 
-    if (callUrl) {
-      print('_writeNameUrlDataLocal real work callUrl : $callUrl');
+  int urlIndex = 0;
+  // Create a storage reference from our app
+  final storageRef = FirebaseStorage.instance.ref();
 
-      await storage.write(
-        key: "urlName",
-        value: _nameUrlDataLocalString,
-      );
-      callUrl = false;
+  // urlIndex 부터 +5까지
+  Future<void> _readStorageProactive() async {
+    print('_readStorageProactive work');
+    // gifNameList 불러오고 실행
+    for (var i = 0;i < 5;i ++){
+      // urlIndex 부터 urlIndex + 4까지 5개 검사. 없으면 실행
+      if (!nameUrlDataLocal.keys.contains(gifNameListFinal[urlIndex + i])){
+        var gifName = gifNameListFinal[urlIndex + i];
+        print('call url $gifName');
+        final pathReference = storageRef.child("version_001/$gifName");
+        final _url = await pathReference.getDownloadURL();
+        nameUrlDataLocal[gifName] = _url.toString();
+
+        String _nameUrlDataLocalString = json.encode(nameUrlDataLocal);
+        await storage.write(
+          key: "urlName",
+          value: _nameUrlDataLocalString,
+        );
+      }
     }
   }
 
-  Widget futureBuilderTemp(){
+  bool initWorkAllDone = false ;
 
-    // bool haveUrl = nameUrlDataLocal.keys.contains(gifNameList[urlIndex]);
+  void initWorkAll(db) async {
+    print('initWorkAll');
+    await authAnon();
+    print('authAnon');
+    await _loadFirestore(db);
+    print('_loadFirestore');
+    await _callNameUrlDataLocal();
+    print('_callNameUrlDataLocal');
+    await _readStorageProactive();
+    print('_readStorageProactive');
+    setState(() {
+      initWorkAllDone = true ;
+    });
+  }
 
-    // initState의 함수들 체크
-    print('gifNameListCalled $gifNameListCalled');
-    print('haveUrl $haveUrl');
+  void _deleteFlutterSecureStorage(String key) async {
+    await storage.delete(key: key);
+  }
 
-    if (gifNameListCalled == true){
-      haveUrl = nameUrlDataLocal.keys.contains(gifNameListFinal[urlIndex]);
-    }
-
-    if (gifNameListCalled == false){
+  Widget initWorkAllExcute(){
+    if (initWorkAllDone == false){
       return CircularProgressIndicator();
-    } else if (haveUrl){
+    } else {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Image.network(
@@ -246,45 +209,27 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           fit: BoxFit.contain,
         ),
       );
-    } else {
-      return FutureBuilder(
-          future: _readStorage(gifNameListFinal[urlIndex]),
-          builder: (BuildContext context, AsyncSnapshot snapshot) {
-            //해당 부분은 data를 아직 받아 오지 못했을때 실행되는 부분을 의미한다.
-            if (snapshot.hasData == false) {
-              return CircularProgressIndicator();
-            }
-            //error가 발생하게 될 경우 반환하게 되는 부분
-            else if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  'Error: ${snapshot.error}',
-                  style: TextStyle(fontSize: 15),
-                ),
-              );
-            }
-            // 데이터를 정상적으로 받아오게 되면 다음 부분을 실행하게 되는 것이다.
-            else {
-              print('여기 되고 있음??? ${snapshot.data.toString()}');
-              print('nameUrlDataLocal $nameUrlDataLocal');
-              nameUrlDataLocal[gifNameListFinal[urlIndex]] =
-                  snapshot.data.toString();
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Image.network(
-                  snapshot.data.toString(),
-                  width: 300,
-                  height: 400,
-                  fit: BoxFit.contain,
-                ),
-              );
-            }
-          });
     }
   }
 
+  // when click next
+  void _readStorageProactiveOne(int index) async {
+    print('_readStorageProactiveOne work');
+    // gifNameList 불러오고 실행
+    if (!nameUrlDataLocal.keys.contains(gifNameListFinal[index + 4])){
+      var gifName = gifNameListFinal[index + 4];
+      print('call url $gifName');
+      final pathReference = storageRef.child("version_001/$gifName");
+      final _url = await pathReference.getDownloadURL();
+      nameUrlDataLocal[gifName] = _url.toString();
 
+      String _nameUrlDataLocalString = json.encode(nameUrlDataLocal);
+      await storage.write(
+        key: "urlName",
+        value: _nameUrlDataLocalString,
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -293,21 +238,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
     // initState 내 비동기 활용하기 위해여 필요함 WidgetsBinding.instance.addPostFrameCallback
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // firebase 익명 로그인 수행
-      authAnon();
       // gif controller 설정
       controller.repeat(
         min: 0,
         max: 10,
         period: const Duration(milliseconds: 1500),
       );
-
     });
 
     // call url from local
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _callNameUrlDataLocal();
-      _loadFirestore(db);
+      initWorkAll(db);
     });
 
     super.initState();
@@ -316,54 +257,387 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
 
-    // write url to local db when after load url
-    _writeNameUrlDataLocal(nameUrlDataLocal);
+    return SafeArea(
+      child: PageView.builder(
+        itemCount: gifNameListFinal.length,
+        scrollDirection: Axis.vertical,
+        itemBuilder: (context, index) {
 
-    // 나중에 천천히 돌면서 / gifNameListCalled true 세팅 이후 현재 gif 이후 5개 더 url 가져오기
-    _readStorageProactive();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('짤방'),
+          String url = nameUrlDataLocal[gifNameListFinal[index]].toString();
+          print(url);
+          print(gifNameListFinal[index]);
+          print(index);
+          _readStorageProactiveOne(index);
+          return ReelItem(index: index, url:url);
+        }
       ),
-      body: Column(
-        children: [
-          // Text('testst'),
+    );
+    // return Scaffold(
+    //   appBar: AppBar(
+    //     title: Text('짤방'),
+    //   ),
+    //   body: Column(
+    //     children: [
+    //       // Text('testst'),
+    //       initWorkAllExcute(),
+    //       // file name list get from firestore
+    //       // futureBuilderTemp(),
+    //       ElevatedButton(
+    //         onPressed: () {
+    //           setState(() {
+    //             urlIndex += 1;
+    //           });
+    //           _readStorageProactiveOne();
+    //           print(urlIndex);
+    //           print(gifNameListFinal[urlIndex]);
+    //         },
+    //         child: Container(
+    //           child: Text('다음'),
+    //         ),
+    //       ),
+    //       ElevatedButton(
+    //         onPressed: () {
+    //           setState(() {
+    //             urlIndex -= 1;
+    //           });
+    //           print(urlIndex);
+    //           print(gifNameListFinal[urlIndex]);
+    //         },
+    //         child: Container(
+    //           child: Text('이전'),
+    //         ),
+    //       ),
+    //       ElevatedButton(onPressed: (){
+    //         _deleteFlutterSecureStorage('urlName');
+    //       }, child: Container(
+    //         child: Text('url 정보 초기화'),
+    //       ))
+    //     ],
+    //   ),
+    //   // backgroundColor: Colors.black54,
+    // );
+  }
+}
 
-          // file name list get from firestore
-          futureBuilderTemp(),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                urlIndex += 1;
-              });
-              print(urlIndex);
-              print(gifNameListFinal[urlIndex]);
-            },
-            child: Container(
-              child: Text('다음'),
+
+
+class ReelItem extends StatefulWidget {
+  const ReelItem({
+    required this.index,
+    required this.url,
+    Key? key,
+  }) : super(key: key);
+  final int index;
+  final String url;
+
+  static final storage = new FlutterSecureStorage();
+
+  @override
+  State<ReelItem> createState() => _ReelItemState();
+}
+
+class _ReelItemState extends State<ReelItem> {
+  void _deleteFlutterSecureStorage(String key) async {
+    await ReelItem.storage.delete(key: key);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.maxFinite,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              image: DecorationImage(
+                  image:
+                  // Image.network(
+                  //   nameUrlDataLocal[gifNameListFinal[urlIndex]].toString(),
+                  //   width: 300,
+                  //   height: 400,
+                  //   fit: BoxFit.contain,
+                  // )
+                  NetworkImage(
+                    // ReelsData[index]['ContentImg'], //ContentImg
+                    widget.url,
+                  ),
+                  fit: BoxFit.cover),
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                urlIndex -= 1;
-              });
-              print(urlIndex);
-              print(gifNameListFinal[urlIndex]);
-            },
-            child: Container(
-              child: Text('이전'),
-            ),
-          ),
-          ElevatedButton(onPressed: (){
-            _deleteFlutterSecureStorage('urlName');
-          }, child: Container(
-            child: Text('url 정보 초기화'),
-          ))
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.5),
+                          Colors.black.withOpacity(0.0),
+                        ])),
+                height: 80.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "릴스",
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.98),
+                            fontSize: 25,
+                            fontWeight: FontWeight.w800),
+                      ),
+                      Icon(Icons.camera),
+                      // SvgPicture.asset(
+                      //   'assets/images/camera_icon.svg',
+                      //   height: 28,
+                      // ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.0),
+                          Colors.black.withOpacity(0.5)
+                        ])),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 15, vertical: 20),
+                          child: Column(
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Container(
+                                  //   height: 35,
+                                  //   width: 35,
+                                  //   decoration: BoxDecoration(
+                                  //       shape: BoxShape.circle,
+                                  //       image: DecorationImage(
+                                  //           image: NetworkImage(
+                                  //             ReelsData[index]['UserImg'], //Username
+                                  //           ),
+                                  //           fit: BoxFit.cover)),
+                                  // ),
+                                  const SizedBox(
+                                    width: 10,
+                                  ),
+                                  // Text(
+                                  //   ReelsData[index]['Username'], //Username
+                                  //   style: TextStyle(
+                                  //       color: Colors.white,
+                                  //       fontWeight: FontWeight.w600,
+                                  //       fontSize: 18),
+                                  // ),
+                                  // const SizedBox(
+                                  //   width: 10,
+                                  // ),
+                                  // OutlinedButton(
+                                  //   onPressed: () {},
+                                  //   child: Text(
+                                  //       ReelsData[index]['isFollowed']
+                                  //           ? '팔로잉'
+                                  //           : '팔로우', //isFollowed
+                                  //       style: TextStyle(
+                                  //         color:  Colors.white,
+                                  //         fontWeight: FontWeight.w600,
+                                  //       )),
+                                  //   style: OutlinedButton.styleFrom(
+                                  //     shape: RoundedRectangleBorder(
+                                  //         borderRadius: BorderRadius.circular(5)),
+                                  //     side: const BorderSide(
+                                  //       width: 1.5,
+                                  //       color:  Colors.white,
+                                  //     ),
+                                  //   ),
+                                  // ),
+                                ],
+                              ),
+                              const SizedBox(
+                                height: 12,
+                              ),
+                              Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                    end: 15.0, start: 5),
+                                child: ExpandableText(
+                                  'ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ',
+                                  expandText: '',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 14),
+                                  collapseText: '',
+                                  expandOnTextTap: true,
+                                  collapseOnTextTap: true,
+                                  maxLines: 2,
+                                  linkColor: Colors.white.withOpacity(0.5),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 15,
+                              ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.music_note,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(
+                                    width: 5,
+                                  ),
+                                  RichText(
+                                      text: TextSpan(children: [
+                                        TextSpan(
+                                          text: '원본 오디오',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14),
+                                        ),
+                                        const TextSpan(
+                                          text: ' • ',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14),
+                                        ),
+                                        // TextSpan(
+                                        //   text: ReelsData[index]['Musicname'],
+                                        //   style: TextStyle(
+                                        //       color: Colors.white,
+                                        //       fontWeight: FontWeight.w600,
+                                        //       fontSize: 14),
+                                        // ),
+                                      ])),
+                                ],
+                              )
+                            ],
+                          ),
+                        )),
+                    Padding(
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          // SvgPicture.asset(
+                          //   'assets/images/love_icon.svg',
+                          //   height: 28,
+                          // ),
+                          Icon(Icons.favorite),
+                          const SizedBox(
+                            height: 7,
+                          ),
+                          Text(
+                            // ReelsData[index]['LikesCount'],
+                            '486',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Icon(Icons.comment),
+                          // SvgPicture.asset(
+                          //   'assets/images/comment_icon.svg',
+                          //   height: 28,
+                          // ),
+                          const SizedBox(
+                            height: 7,
+                          ),
+                          Text(
+                            // ReelsData[index]['CommentCount'],
+                            '4864',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          IconButton(onPressed: (){
+                            _deleteFlutterSecureStorage('urlName');
+                            print('url 삭제');
+                          },
+                            icon: Icon(
+                            Icons.message,
+                            color: Colors.white,
+                            size: 25,
+                          ),
+                          ),
+
+                          // IconButton(onPressed: (){
+                          //   _deleteFlutterSecureStorage('urlName');
+                          //   }, icon: Icon(
+                          //   Icons.message,
+                          //   color: Colors.white,
+                          //   size: 25,
+                          // )
+                          // ),
+                          // SvgPicture.asset(
+                          //   'assets/images/message_icon.svg',
+                          //   height: 28,
+                          // ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          const Icon(
+                            Icons.abc,
+                            color: Colors.white,
+                            size: 25,
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          // Padding(
+                          //   padding: const EdgeInsets.all(2.0),
+                          //   child: Container(
+                          //     height: 32,
+                          //     width: 32,
+                          //     decoration: BoxDecoration(
+                          //         border: Border.all(color: Colors.white, width: 2),
+                          //         shape: BoxShape.rectangle,
+                          //         borderRadius:
+                          //         (BorderRadius.all(Radius.circular(7))),
+                          //         image: DecorationImage(
+                          //             image: NetworkImage(
+                          //               ReelsData[index]['MusicImg'],
+                          //             ),
+                          //             fit: BoxFit.cover)),
+                          //   ),
+                          // ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              )
+            ],
+          )
         ],
       ),
-      // backgroundColor: Colors.black54,
     );
   }
 }
