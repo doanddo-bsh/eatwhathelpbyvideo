@@ -15,7 +15,7 @@ void main() async {
 
   // firebase init
   await Firebase.initializeApp(
-    // to make lib/firebase_options.dart
+    // to create lib/firebase_options.dart
     options: DefaultFirebaseOptions.currentPlatform,
   ); // <- firebase add init setting
 
@@ -61,10 +61,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   // 4. gif file 명 index 0~4 가 local url에 있는지 확인
   // 5. 없으면 firebase storage 에서 불러오고 local url에 저장
 
-  // 초기 수행
-
-
-
+  // 초기 수행 함수 정의
   // 1. 익명 로그임
   final AuthService _auth = AuthService();
 
@@ -125,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
   }
 
-// 3. local url 불러오기
+  // 3. local url 불러오기
   //flutter_secure_storage 사용을 위한 초기화 작업
   static final storage = new FlutterSecureStorage();
   Map<String, dynamic> nameUrlDataLocal = {};
@@ -148,7 +145,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   // 4. gif file 명 index 0~4 가 local url에 있는지 확인
   // 5. 없으면 firebase storage 에서 불러오고 local url에 저장
-
   int urlIndex = 0;
   // Create a storage reference from our app
   final storageRef = FirebaseStorage.instance.ref();
@@ -175,8 +171,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
   }
 
-  bool initWorkAllDone = false ;
-
+  bool initWorkAllDone = false  ;
+  // 초기 세팅 함수 하나로 모으기
   void initWorkAll(db) async {
     print('initWorkAll');
     await authAnon();
@@ -192,21 +188,26 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
   }
 
-  void _deleteFlutterSecureStorage(String key) async {
-    await storage.delete(key: key);
-  }
-
+  // 함수화
   Widget initWorkAllExcute(){
     if (initWorkAllDone == false){
-      return CircularProgressIndicator();
+      return Center(
+        child: CircularProgressIndicator()
+      );
     } else {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Image.network(
-          nameUrlDataLocal[gifNameListFinal[urlIndex]].toString(),
-          width: 300,
-          height: 400,
-          fit: BoxFit.contain,
+      return SafeArea(
+        child: PageView.builder(
+            itemCount: gifNameListFinal.length,
+            scrollDirection: Axis.vertical,
+            itemBuilder: (context, index) {
+
+              String url = nameUrlDataLocal[gifNameListFinal[index]].toString();
+              print(url);
+              print(gifNameListFinal[index]);
+              print(index);
+              _readStorageProactiveOne(index);
+              return ReelItem(index: index, url:url);
+            }
         ),
       );
     }
@@ -257,69 +258,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
 
-    return SafeArea(
-      child: PageView.builder(
-        itemCount: gifNameListFinal.length,
-        scrollDirection: Axis.vertical,
-        itemBuilder: (context, index) {
+    return initWorkAllExcute();
 
-          String url = nameUrlDataLocal[gifNameListFinal[index]].toString();
-          print(url);
-          print(gifNameListFinal[index]);
-          print(index);
-          _readStorageProactiveOne(index);
-          return ReelItem(index: index, url:url);
-        }
-      ),
-    );
-    // return Scaffold(
-    //   appBar: AppBar(
-    //     title: Text('짤방'),
-    //   ),
-    //   body: Column(
-    //     children: [
-    //       // Text('testst'),
-    //       initWorkAllExcute(),
-    //       // file name list get from firestore
-    //       // futureBuilderTemp(),
-    //       ElevatedButton(
-    //         onPressed: () {
-    //           setState(() {
-    //             urlIndex += 1;
-    //           });
-    //           _readStorageProactiveOne();
-    //           print(urlIndex);
-    //           print(gifNameListFinal[urlIndex]);
-    //         },
-    //         child: Container(
-    //           child: Text('다음'),
-    //         ),
-    //       ),
-    //       ElevatedButton(
-    //         onPressed: () {
-    //           setState(() {
-    //             urlIndex -= 1;
-    //           });
-    //           print(urlIndex);
-    //           print(gifNameListFinal[urlIndex]);
-    //         },
-    //         child: Container(
-    //           child: Text('이전'),
-    //         ),
-    //       ),
-    //       ElevatedButton(onPressed: (){
-    //         _deleteFlutterSecureStorage('urlName');
-    //       }, child: Container(
-    //         child: Text('url 정보 초기화'),
-    //       ))
-    //     ],
-    //   ),
-    //   // backgroundColor: Colors.black54,
-    // );
   }
 }
-
-
 
 class ReelItem extends StatefulWidget {
   const ReelItem({
@@ -337,6 +279,8 @@ class ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<ReelItem> {
+
+  // 삭제 버튼 임시 사용 test 목적
   void _deleteFlutterSecureStorage(String key) async {
     await ReelItem.storage.delete(key: key);
   }
