@@ -4,9 +4,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:flutter_gif/flutter_gif.dart';
-
 import '../component/auth.dart';
 import 'reelFavoritePage.dart';
+import 'package:gif_view/gif_view.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -18,8 +18,6 @@ class MyHomePage extends StatefulWidget {
 // TickerProviderStateMixin for gif play
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
-  // gif controller
-  // late FlutterGifController controller = FlutterGifController(vsync: this);
 
   // 초기 수행 정리
   // 1. 익명 로그임
@@ -174,6 +172,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             itemBuilder: (context, index) {
 
               String url = nameUrlDataLocal[gifNameListFinal[index]].toString();
+              String url_next = nameUrlDataLocal[gifNameListFinal[index+1]]
+                  .toString();
               String fileName = gifNameListFinal[index];
               print(url);
               print('file name ${gifNameListFinal[index]}');
@@ -183,6 +183,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 index: index,
                 url:url,
                 fileName:fileName,
+                url_next:url_next,
                 favoriteListAdd:_favoriteListAdd,
                 favoriteListRemove:_favoriteListRemove,
                 nameUrlDataLocal:nameUrlDataLocal,
@@ -255,21 +256,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     print(favoriteList);
   }
 
+
   @override
   void initState() {
-    // gif control 목적
-    // controller = FlutterGifController(vsync: this);
 
     // initState 내 비동기 활용하기 위해여 필요함 WidgetsBinding.instance.addPostFrameCallback
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // gif controller 설정
-      // controller.repeat(
-      //   min: 0,
-      //   max: 10,
-      //   period: const Duration(milliseconds: 1500),
-      // );
-    });
-
     // call url from local
     WidgetsBinding.instance.addPostFrameCallback((_) {
       initWorkAll(db);
@@ -288,10 +279,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 }
 
 class ReelItem extends StatefulWidget {
-  const ReelItem({
+
+
+  ReelItem({
     required this.index,
     required this.url,
     required this.fileName,
+    required this.url_next,
     required this.favoriteListAdd,
     required this.favoriteListRemove,
     required this.nameUrlDataLocal,
@@ -301,6 +295,7 @@ class ReelItem extends StatefulWidget {
   final int index;
   final String url;
   final String fileName;
+  final String url_next;
   final favoriteListAdd;
   final favoriteListRemove;
   final Map<String, dynamic> nameUrlDataLocal;
@@ -313,6 +308,7 @@ class ReelItem extends StatefulWidget {
 }
 
 class _ReelItemState extends State<ReelItem> {
+  final controller = GifController();
 
   // 삭제 버튼 임시 사용 test 목적
   void _deleteFlutterSecureStorage(String key) async {
@@ -349,10 +345,13 @@ class _ReelItemState extends State<ReelItem> {
     readFavoriteCount();
   }
 
+
   @override
   void initState() {
     // TODO: implement initState
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+
       // read favorite count
       readFavoriteCount();
     });
@@ -366,10 +365,25 @@ class _ReelItemState extends State<ReelItem> {
       color: Colors.transparent, // 추가
       child: Scaffold(
         body: Stack(
+
           children: [
+            Container(
+              height: 0,
+              width: 0,
+              child: GifView.network(
+                widget.url_next,
+              ),
+            ),
             // image
             InkWell(
               onTap: (){
+                if (controller.status == GifStatus.playing) {
+                  controller.pause();
+                } else {
+                  controller.play();
+                }
+              },
+              onDoubleTap: (){
                 setState(() {
                   favoriteCount += 1;
                 });
@@ -381,15 +395,29 @@ class _ReelItemState extends State<ReelItem> {
               child: Container(
                 width: double.infinity,
                 height: double.maxFinite,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  image: DecorationImage(
-                      image:
-                      NetworkImage(
-                        widget.url,
+                color: Colors.black,
+                child: GifView.network(
+                      widget.url,
+                      controller: controller,
+                      fit: BoxFit.cover,
+                      progress: const Center(
+                        child: CircularProgressIndicator(),
                       ),
-                      fit: BoxFit.cover),
-                ),
+                      ),
+                // decoration: BoxDecoration(
+                //   color: Colors.black,
+                //   image: DecorationImage(
+                //       image:
+                //       NetworkImage(
+                //         widget.url,
+                //       ),
+                //       // image: GifView.network(
+                //       //   widget.url,
+                //       //   controller: controller,
+                //       // ).image,
+                //       fit: BoxFit.cover
+                //   ),
+                // ),
               ),
             ),
             Column(

@@ -167,7 +167,7 @@ class ReelItemFavoriteAfterState extends State<ReelItemFavoriteAfter> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Text(
-                          "뭐먹짤",
+                          "즐겨찾기",
                           style: TextStyle(
                               color: Colors.white.withOpacity(0.98),
                               fontSize: 25,
