@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class ReelItemFavoriteBefore extends StatelessWidget {
-  const ReelItemFavoriteBefore({
+class ClassFavoriteSave {
+  List<dynamic> favoriteList;
+  ClassFavoriteSave(this.favoriteList);
+  //clone 명명 생성자 사용 Named constructor
+  ClassFavoriteSave.clone(ClassFavoriteSave classFavoriteSave) :
+        this(classFavoriteSave.favoriteList);
+}
+
+class ReelItemFavoriteBefore extends StatefulWidget {
+  ReelItemFavoriteBefore({
     required this.favoriteList,
     required this.nameUrlDataLocal,
     required this.favoriteListAdd,
@@ -17,36 +25,119 @@ class ReelItemFavoriteBefore extends StatelessWidget {
   static final storage = new FlutterSecureStorage();
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-        child:
-        PageView.builder(
-            itemCount: favoriteList.length,
-            scrollDirection: Axis.vertical,
-            itemBuilder: (context, index)
-            {
-              String url = nameUrlDataLocal[favoriteList[index]].toString();
-              String fileName = favoriteList[index];
+  State<ReelItemFavoriteBefore> createState() => _ReelItemFavoriteBeforeState();
+}
 
-              print(url);
-              print('file name ${favoriteList[index]}');
-              print(index);
+class _ReelItemFavoriteBeforeState extends State<ReelItemFavoriteBefore> {
 
-              // int favoriteCount = 0 ;
+  int favoriteListFixCount = 0;
+  List<dynamic> favoriteListFix = [];
+  bool favoriteListFixLoad = false;
+  // 처음 가지고온 favoriteList 을 고정해놓기
 
-              final storage = new FlutterSecureStorage();
-              // storage read
+  Widget favoriteAddDone(){
+    print('favoriteListFixLoad $favoriteListFixLoad');
+    print('favoriteListFixCount $favoriteListFixCount');
+    print('favoriteListFix $favoriteListFix');
+    print('widget.favoriteList ${widget.favoriteList}');
+    if (favoriteListFixLoad){
+      print('favoriteListFixLoad is true work here');
+      return SafeArea(
+          child:
+          PageView.builder(
+            // itemCount: favoriteList.length,
+              itemCount: favoriteListFixCount,
+              scrollDirection: Axis.vertical,
+              itemBuilder: (context, index)
+              {
+                // String url = nameUrlDataLocal[favoriteList[index]].toString();
+                String url = widget.nameUrlDataLocal[favoriteListFix[index]]
+                    .toString();
+                // String fileName = favoriteList[index];
+                String fileName = favoriteListFix[index];
 
-              return ReelItemFavoriteAfter(
+                print(url);
+                // print('file name ${favoriteList[index]}');
+                print('favoriteListFix.length, ${favoriteListFix.length}');
+                print('file name ${favoriteListFix[index]}');
+                print(index);
+                print('favoriteList22 ${widget.favoriteList}');
+                print('favoriteListFix22 $favoriteListFix');
+                print('favoriteListFixCount22 $favoriteListFixCount');
+
+
+                // int favoriteCount = 0 ;
+
+                return ReelItemFavoriteAfter(
                   index:index,
                   fileName:fileName,
                   url:url,
-                  favoriteListAdd:favoriteListAdd,
-                  favoriteListRemove:favoriteListRemove,
-              );
-            }
-        )
-    );
+                  favoriteListAdd:widget.favoriteListAdd,
+                  favoriteListRemove:widget.favoriteListRemove,
+                );
+              }
+          )
+      );
+    } else {
+      print('favoriteListFixLoad is false work here');
+      return SafeArea(
+        child: Center(
+            child: CircularProgressIndicator()
+        ),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+
+    print('여기가 문제?');
+
+    var orignalFavorite = ClassFavoriteSave(widget.favoriteList);
+    var changeFavorite = ClassFavoriteSave.clone(orignalFavorite); // 함수 생성시
+    // clone 명명 생성자 사용
+
+    print('orignalFavorite      favoriteList : ${orignalFavorite.favoriteList}');
+    print('changeFavorite favoriteList : ${changeFavorite.favoriteList}');
+
+    print('orignalFavorite id      : ${orignalFavorite.hashCode}');
+    print('changeFavorite id : ${changeFavorite.hashCode}');
+
+
+    favoriteListFix = changeFavorite.favoriteList;
+
+    favoriteListFixCount = favoriteListFix.length;
+
+    print('favoriteListFix id      : ${favoriteListFix.hashCode}');
+    print('favoriteList id : ${widget.favoriteList.hashCode}');
+
+
+    favoriteListFixLoad = true;
+    // TODO: implement initState
+    // favoriteListFix = widget.favoriteList ;
+
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   widget.favoriteList.forEach((element) {
+    //     favoriteListFix.add(element);
+    //   });
+    //
+    //
+    //
+    //   setState(() {
+    //
+    //   });
+    //
+    // });
+
+    print('initState work done favoriteListFix $favoriteListFix');
+    print('initState work done favoriteListFixCount $favoriteListFixCount');
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return favoriteAddDone();
   }
 }
 
@@ -174,7 +265,7 @@ class ReelItemFavoriteAfterState extends State<ReelItemFavoriteAfter> {
                               fontWeight: FontWeight.w800),
                         ),
                         Expanded(child: SizedBox()),
-                        // 즐겨찾기
+                        // go home
                         IconButton(
                           icon: Icon(Icons.home),
                           color: Colors.white,

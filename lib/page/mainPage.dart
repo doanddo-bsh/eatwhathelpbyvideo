@@ -165,15 +165,28 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           child: CircularProgressIndicator()
       );
     } else {
+
       return SafeArea(
         child: PageView.builder(
-            itemCount: gifNameListFinal.length,
+            // to make infinite (ref) https://stackoverflow.com/questions/74961995/how-can-i-make-items-repeat-again-if-i-arrive-the-end-of-list
+            // itemCount: gifNameListFinal.length,
             scrollDirection: Axis.vertical,
             itemBuilder: (context, index) {
 
+              if (index == (gifNameListFinal.length-3)){
+                index = index % gifNameListFinal.length-3;
+              }
+
               String url = nameUrlDataLocal[gifNameListFinal[index]].toString();
-              String url_next = nameUrlDataLocal[gifNameListFinal[index+1]]
+              // to fast loading
+              String url_next1 = nameUrlDataLocal[gifNameListFinal[index+1]]
                   .toString();
+              String url_next2 = nameUrlDataLocal[gifNameListFinal[index+2]]
+                  .toString();
+              String url_next3 = nameUrlDataLocal[gifNameListFinal[index+3]]
+                  .toString();
+
+
               String fileName = gifNameListFinal[index];
               print(url);
               print('file name ${gifNameListFinal[index]}');
@@ -183,7 +196,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 index: index,
                 url:url,
                 fileName:fileName,
-                url_next:url_next,
+                url_next1:url_next1,
+                url_next2:url_next2,
+                url_next3:url_next3,
                 favoriteListAdd:_favoriteListAdd,
                 favoriteListRemove:_favoriteListRemove,
                 nameUrlDataLocal:nameUrlDataLocal,
@@ -217,9 +232,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   List<String> favoriteList = [];
   // favorite list update
   void _favoriteListAdd(String gifName) async {
-    setState(() {
+    // setState(() {
       favoriteList.add(gifName);
-    });
+    // });
 
     String favoriteListString = favoriteList.join(',');
 
@@ -231,9 +246,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 
   void _favoriteListRemove(String gifName) async {
-    setState(() {
+    // setState(() {
       favoriteList.removeWhere((item) => item == gifName);
-    });
+    // });
 
     String favoriteListString = favoriteList.join(',');
 
@@ -241,7 +256,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       key: 'favoriteList',
       value: favoriteListString,
     );
-    print(favoriteList);
+    print('_favoriteListRemove $favoriteList');
   }
 
   void _favoriteRead() async {
@@ -253,7 +268,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         favoriteList = favoriteListString.split(',');
       });
     }
-    print(favoriteList);
+    print('_favoriteRead $favoriteList');
   }
 
 
@@ -285,7 +300,9 @@ class ReelItem extends StatefulWidget {
     required this.index,
     required this.url,
     required this.fileName,
-    required this.url_next,
+    required this.url_next1,
+    required this.url_next2,
+    required this.url_next3,
     required this.favoriteListAdd,
     required this.favoriteListRemove,
     required this.nameUrlDataLocal,
@@ -295,7 +312,9 @@ class ReelItem extends StatefulWidget {
   final int index;
   final String url;
   final String fileName;
-  final String url_next;
+  final String url_next1;
+  final String url_next2;
+  final String url_next3;
   final favoriteListAdd;
   final favoriteListRemove;
   final Map<String, dynamic> nameUrlDataLocal;
@@ -366,13 +385,19 @@ class _ReelItemState extends State<ReelItem> {
       child: Scaffold(
         body: Stack(
 
+          // to fast loading
           children: [
             Container(
-              height: 0,
-              width: 0,
-              child: GifView.network(
-                widget.url_next,
-              ),
+              height: 0, width: 0,
+              child: GifView.network(widget.url_next1,),
+            ),
+            Container(
+              height: 0, width: 0,
+              child: GifView.network(widget.url_next2,),
+            ),
+            Container(
+              height: 0, width: 0,
+              child: GifView.network(widget.url_next3,),
             ),
             // image
             InkWell(
@@ -451,6 +476,7 @@ class _ReelItemState extends State<ReelItem> {
                           icon:Icon(Icons.bookmarks_rounded),
                           color: Colors.white,
                           onPressed: () async {
+
 
                             bool isBack = await Navigator.push(context,
                                 MaterialPageRoute(builder: (context) =>  ReelItemFavoriteBefore(
