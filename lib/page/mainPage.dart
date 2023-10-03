@@ -7,6 +7,7 @@ import 'package:flutter_gif/flutter_gif.dart';
 import '../component/auth.dart';
 import 'reelFavoritePage.dart';
 import 'package:gif_view/gif_view.dart';
+import 'videoPage.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
@@ -17,7 +18,6 @@ class MyHomePage extends StatefulWidget {
 
 // TickerProviderStateMixin for gif play
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
-
 
   // 초기 수행 정리
   // 1. 익명 로그임
@@ -60,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // read all file name
     var rlt_test = await db
         .collection("gif_name_list_by_version")
-        .doc('version_001')
+        .doc('version_002')
         .get();
 
     // null check // not null 일때 작동
@@ -128,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       if (!nameUrlDataLocal.keys.contains(gifNameListFinal[urlIndex + i])){
         var gifName = gifNameListFinal[urlIndex + i];
         print('call url $gifName');
-        final pathReference = storageRef.child("version_001/$gifName");
+        final pathReference = storageRef.child("version_002/$gifName");
         final _url = await pathReference.getDownloadURL();
         nameUrlDataLocal[gifName] = _url.toString();
 
@@ -217,7 +217,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     if (!nameUrlDataLocal.keys.contains(gifNameListFinal[index + 4])){
       var gifName = gifNameListFinal[index + 4];
       print('call url $gifName');
-      final pathReference = storageRef.child("version_001/$gifName");
+      final pathReference = storageRef.child("version_002/$gifName");
       final _url = await pathReference.getDownloadURL();
       nameUrlDataLocal[gifName] = _url.toString();
 
@@ -387,18 +387,18 @@ class _ReelItemState extends State<ReelItem> {
 
           // to fast loading
           children: [
-            Container(
-              height: 0, width: 0,
-              child: GifView.network(widget.url_next1,),
-            ),
-            Container(
-              height: 0, width: 0,
-              child: GifView.network(widget.url_next2,),
-            ),
-            Container(
-              height: 0, width: 0,
-              child: GifView.network(widget.url_next3,),
-            ),
+            // Container(
+            //   height: 0, width: 0,
+            //   child: GifView.network(widget.url_next1,),
+            // ),
+            // Container(
+            //   height: 0, width: 0,
+            //   child: GifView.network(widget.url_next2,),
+            // ),
+            // Container(
+            //   height: 0, width: 0,
+            //   child: GifView.network(widget.url_next3,),
+            // ),
             // image
             InkWell(
               onTap: (){
@@ -421,28 +421,15 @@ class _ReelItemState extends State<ReelItem> {
                 width: double.infinity,
                 height: double.maxFinite,
                 color: Colors.black,
-                child: GifView.network(
-                      widget.url,
-                      controller: controller,
-                      fit: BoxFit.cover,
-                      progress: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      ),
-                // decoration: BoxDecoration(
-                //   color: Colors.black,
-                //   image: DecorationImage(
-                //       image:
-                //       NetworkImage(
-                //         widget.url,
+                // child: GifView.network(
+                //       widget.url,
+                //       controller: controller,
+                //       fit: BoxFit.cover,
+                //       progress: const Center(
+                //           child: CircularProgressIndicator(),
+                //         ),
                 //       ),
-                //       // image: GifView.network(
-                //       //   widget.url,
-                //       //   controller: controller,
-                //       // ).image,
-                //       fit: BoxFit.cover
-                //   ),
-                // ),
+                child: VideoPlayerEatWhat(urlString: widget.url),
               ),
             ),
             Column(
