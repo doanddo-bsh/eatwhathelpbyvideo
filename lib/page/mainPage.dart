@@ -229,6 +229,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
   }
 
+
+  // favoriteList 변경
   List<String> favoriteList = [];
   // favorite list update
   void _favoriteListAdd(String gifName) async {
@@ -247,7 +249,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   void _favoriteListRemove(String gifName) async {
     // setState(() {
-      favoriteList.removeWhere((item) => item == gifName);
+    favoriteList.removeWhere((item) => item == gifName);
     // });
 
     String favoriteListString = favoriteList.join(',');
@@ -266,6 +268,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     } else {
       setState(() {
         favoriteList = favoriteListString.split(',');
+        favoriteList.removeWhere((item) => item == '');
       });
     }
     print('_favoriteRead $favoriteList');
@@ -401,13 +404,6 @@ class _ReelItemState extends State<ReelItem> {
             // ),
             // image
             InkWell(
-              onTap: (){
-                if (controller.status == GifStatus.playing) {
-                  controller.pause();
-                } else {
-                  controller.play();
-                }
-              },
               onDoubleTap: (){
                 setState(() {
                   favoriteCount += 1;
@@ -463,39 +459,57 @@ class _ReelItemState extends State<ReelItem> {
                           icon:Icon(Icons.bookmarks_rounded),
                           color: Colors.white,
                           onPressed: () async {
-
-
-                            bool isBack = await Navigator.push(context,
-                                MaterialPageRoute(builder: (context) =>  ReelItemFavoriteBefore(
-                                          favoriteList: widget.favoriteList,
-                                          nameUrlDataLocal: widget.nameUrlDataLocal,
-                                          favoriteListAdd:widget.favoriteListAdd,
-                                          favoriteListRemove:widget.favoriteListRemove,
-                                        )
-                                    )
-                            );
-                            if (isBack) {
-                              _updateFavoriteCount();
+                            if (widget.favoriteList.length>0){
+                              bool isBack = await Navigator.push(context,
+                                  MaterialPageRoute(builder: (context) =>  ReelItemFavoriteBefore(
+                                    favoriteList: widget.favoriteList,
+                                    nameUrlDataLocal: widget.nameUrlDataLocal,
+                                    favoriteListAdd:widget.favoriteListAdd,
+                                    favoriteListRemove:widget.favoriteListRemove,
+                                  )
+                                  )
+                              );
+                              if (isBack) {
+                                _updateFavoriteCount();
+                              }
+                            } else {
+                              print('즐겨찾기 없음');
+                              showDialog(
+                                  context: context,
+                                  builder: (BuildContext context){
+                                    return AlertDialog(
+                                      title: const Text('즐겨찾기가 없습니다.'),
+                                      content: const Text('우측 하단 하트를 눌러 즐겨찾기를'
+                                          ' 추가하세요.'),
+                                      actions: <Widget>[
+                                        // TextButton(
+                                        //   onPressed: () => Navigator.pop(context, 'Cancel'),
+                                        //   child: const Text('Cancel'),
+                                        // ),
+                                        Center(
+                                          child: TextButton(
+                                            onPressed: () => Navigator.pop(context, 'OK'),
+                                            child: const Text('OK'),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                              );
                             }
-
-                            // print('toFavoritePage');
-                            // // toFavoritePage();
-                            // Navigator.push(
-                            //   context, MaterialPageRoute(builder: (context){
-                            //     return ReelItemFavoriteBefore(
-                            //       favoriteList: widget.favoriteList,
-                            //       nameUrlDataLocal: widget.nameUrlDataLocal,
-                            //       favoriteListAdd:widget.favoriteListAdd,
-                            //       favoriteListRemove:widget.favoriteListRemove,
-                            //     );
-                            //   })
-                            // );
                           },
                         ),
                         SizedBox(width: 13.0,),
                         // 공유
-                        Icon(Icons.ios_share,
+                        IconButton(
+                          icon:Icon(Icons.ios_share),
                           color: Colors.white,
+                          onPressed: (){
+                            print('_deleteFlutterSecureStorage(urlName)');
+                            _deleteFlutterSecureStorage('urlName');
+                            _deleteFlutterSecureStorage('favoriteList');
+
+                          },
                         ),
                       ],
                     ),

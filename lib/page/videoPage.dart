@@ -20,6 +20,8 @@ class VideoPlayerEatWhatState extends State<VideoPlayerEatWhat> {
   void initState() {
     super.initState();
 
+    print(widget.urlString);
+
     Uri videoUrl = Uri.parse(widget.urlString);
     // VideoPlayerController.networkUrl(url)
     controller = VideoPlayerController.networkUrl(videoUrl);
@@ -41,6 +43,7 @@ class VideoPlayerEatWhatState extends State<VideoPlayerEatWhat> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Center(
         child: InkWell(
           onTap: () {
@@ -53,7 +56,7 @@ class VideoPlayerEatWhatState extends State<VideoPlayerEatWhat> {
           child: SizedBox.expand(
             child: FittedBox(
               fit: BoxFit.cover,
-              child: SizedBox(
+              child: Container(
                 width: controller.value.size?.width ?? 0,
                 height: controller.value.size?.height ?? 0,
                 child: VideoPlayer(controller),
