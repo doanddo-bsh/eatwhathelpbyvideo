@@ -25,6 +25,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'eatwhathelpbyvideo',
+      debugShowCheckedModeBanner: false, // 디버그 배너삭제
+      theme: ThemeData(
+          appBarTheme: AppBarTheme( // appbar 색 변경
+            color: const Color(0xFF151026),
+          )),
       home: MyHomePage(),
     );
   }

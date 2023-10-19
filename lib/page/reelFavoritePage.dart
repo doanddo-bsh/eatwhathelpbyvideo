@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'videoPage.dart';
+import 'dart:collection';
+import 'dart:convert';
+
 
 class ReelItemFavoriteBefore extends StatefulWidget {
   ReelItemFavoriteBefore({
-    required this.favoriteList,
-    required this.nameUrlDataLocal,
+    required this.favoriteListMap,
     required this.favoriteListAdd,
     required this.favoriteListRemove,
+    required this.nameUrlMap,
     Key? key,
   }) : super(key: key);
-  final List<String> favoriteList;
-  final Map<String, dynamic> nameUrlDataLocal;
+  final Map<String,dynamic> favoriteListMap;
   final favoriteListAdd;
   final favoriteListRemove;
+  final Map<dynamic,dynamic> nameUrlMap;
 
   static final storage = new FlutterSecureStorage();
 
@@ -24,7 +27,7 @@ class ReelItemFavoriteBefore extends StatefulWidget {
 class _ReelItemFavoriteBeforeState extends State<ReelItemFavoriteBefore> {
 
   int favoriteListFixCount = 0;
-  List<dynamic> favoriteListFix = [];
+  Map<String,dynamic> favoriteListFix = {};
   bool favoriteListFixLoad = false;
   // 처음 가지고온 favoriteList 을 고정해놓기
 
@@ -34,9 +37,8 @@ class _ReelItemFavoriteBeforeState extends State<ReelItemFavoriteBefore> {
 
       print('favoriteListFixLoad is true work here');
       print('favoriteListFix.length, ${favoriteListFix.length}');
-      print('favoriteList22 ${widget.favoriteList}');
+      print('favoriteList22 ${widget.favoriteListMap}');
       print('favoriteListFix22 $favoriteListFix');
-      print('nameUrlDataLocal ${widget.nameUrlDataLocal}');
 
       return SafeArea(
           child:
@@ -46,23 +48,17 @@ class _ReelItemFavoriteBeforeState extends State<ReelItemFavoriteBefore> {
               scrollDirection: Axis.vertical,
               itemBuilder: (context, index)
               {
-                // String url = nameUrlDataLocal[favoriteList[index]].toString();
-                String url = widget.nameUrlDataLocal[favoriteListFix[index].toString()]
-                    .toString();
+                // sort by value
+                var sortedKeys = favoriteListFix.keys.toList(growable:false)
+                  ..sort((k1, k2) => favoriteListFix[k2].compareTo
+                    (favoriteListFix[k1]));
+                LinkedHashMap sortedMap = new LinkedHashMap
+                    .fromIterable(sortedKeys, key: (k) => k, value: (k) => favoriteListFix[k]);
+
+                List<dynamic> favoriteListFixSort = sortedMap.keys.toList();
                 // String fileName = favoriteList[index];
-                String fileName = favoriteListFix[index].toString();
-
-                print(url);
-                // print('file name ${favoriteList[index]}');
-                print('favoriteListFix.length, ${favoriteListFix.length}');
-                print('file name ${favoriteListFix[index]}');
-                print(index);
-                print('favoriteList22 ${widget.favoriteList}');
-                print('favoriteListFix22 $favoriteListFix');
-                // print('favoriteListFixCount22 $favoriteListFixCount');
-
-
-                // int favoriteCount = 0 ;
+                String fileName = favoriteListFixSort[index].toString();
+                String url = widget.nameUrlMap[fileName];
 
                 return ReelItemFavoriteAfter(
                   index:index,
@@ -91,12 +87,12 @@ class _ReelItemFavoriteBeforeState extends State<ReelItemFavoriteBefore> {
 
     // favoriteListFix = widget.favoriteList;
     // to avoid hashCode same
-    favoriteListFix.addAll(widget.favoriteList);
+    favoriteListFix.addAll(widget.favoriteListMap);
     favoriteListFixLoad = true;
     // TODO: implement initState
 
     print('favoriteListFix id      : ${favoriteListFix.hashCode}');
-    print('widget.favoriteList id : ${widget.favoriteList.hashCode}');
+    print('widget.favoriteList id : ${widget.favoriteListMap.hashCode}');
 
     super.initState();
   }
@@ -137,16 +133,41 @@ class ReelItemFavoriteAfterState extends State<ReelItemFavoriteAfter> {
 
   int favoriteCount = 0 ;
 
-  void readFavoriteCount() async {
+  // void readFavoriteCount() async {
+  //
+  //   String? favoriteCountString = await storage.read(key: widget.fileName);
+  //   if (favoriteCountString == null){
+  //     print('favoriteCountString is null');
+  //   } else {
+  //     setState(() {
+  //       favoriteCount = int.parse(favoriteCountString);
+  //     });
+  //   }
+  // }
 
-    String? favoriteCountString = await storage.read(key: widget.fileName);
-    if (favoriteCountString == null){
-      print('favoriteCountString is null');
+  Map<dynamic, dynamic> favoriteListMap = {};
+
+  void readFavoriteCount() async {
+    String? favoriteListString = await storage.read(key: 'favoriteListMap');
+    if (favoriteListString == null){
+      print('favoriteListMap is null');
     } else {
+      favoriteListMap = json.decode(favoriteListString);
+    }
+
+    {
       setState(() {
-        favoriteCount = int.parse(favoriteCountString);
+        favoriteCount = favoriteListMap[widget.fileName]!;
       });
     }
+    // String? favoriteCountString = await storage.read(key: widget.fileName);
+    // if (favoriteCountString == null){
+    //   print('favoriteCountString is null');
+    // } else {
+    //   setState(() {
+    //     favoriteCount = int.parse(favoriteCountString);
+    //   });
+    // }
   }
 
   // 삭제 버튼 임시 사용 test 목적
@@ -187,10 +208,10 @@ class ReelItemFavoriteAfterState extends State<ReelItemFavoriteAfter> {
                 setState(() {
                   favoriteCount += 1;
                 });
-                writeFavoriteCount(favoriteCount);
-                if (favoriteCount==1){
-                  widget.favoriteListAdd(widget.fileName);
-                }
+                // writeFavoriteCount(favoriteCount);
+                // if (favoriteCount==1){
+                widget.favoriteListAdd(widget.fileName, favoriteCount);
+                // }
               },
               child: Container(
                 width: double.infinity,
@@ -267,20 +288,20 @@ class ReelItemFavoriteAfterState extends State<ReelItemFavoriteAfter> {
                                 setState(() {
                                   favoriteCount = 0;
                                 });
-                                writeFavoriteCount(favoriteCount);
-                                if (favoriteCount == 0) {
-                                  widget.favoriteListRemove(
-                                      widget.fileName);
-                                }
+                                // writeFavoriteCount(favoriteCount);
+                                // if (favoriteCount == 0) {
+                                widget.favoriteListRemove(
+                                    widget.fileName);
+                                // }
                               },
                               onTap: () {
                                 setState(() {
                                   favoriteCount += 1;
                                 });
-                                writeFavoriteCount(favoriteCount);
-                                if (favoriteCount == 1) {
-                                  widget.favoriteListAdd(widget.fileName);
-                                }
+                                // writeFavoriteCount(favoriteCount);
+                                // if (favoriteCount == 1) {
+                                widget.favoriteListAdd(widget.fileName, favoriteCount);
+                                // }
                               },
                               child: const Icon(
                                 Icons.favorite,
