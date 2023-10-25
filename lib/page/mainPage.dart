@@ -25,20 +25,7 @@ class MyHomePage extends StatefulWidget {
 
 // TickerProviderStateMixin for gif play
 class _MyHomePageState extends State<MyHomePage> {
-  // 초기 수행 정리
-  // 1. 익명 로그임
-  // 2. gif file 명 가져오기
-  // 3. local url 불러오기
-  // 4. gif file 명 index 0~4 가 local url에 있는지 확인
-  // 5. 없으면 firebase storage 에서 불러오고 local url에 저장
-  // 이게 완료될때까지 circle 돌기
-
-  // 스크롤 넘길때 마다
-  // 4. gif file 명 index 0~4 가 local url에 있는지 확인
-  // 5. 없으면 firebase storage 에서 불러오고 local url에 저장
-
-  // 초기 수행 함수 정의
-  // 1. 익명 로그임
+  // 익명 로그임
   final AuthService _auth = AuthService();
 
   Future<void> authAnon() async {
@@ -52,10 +39,6 @@ class _MyHomePageState extends State<MyHomePage> {
       print(result.uid); // return uid value in UserModel class
     }
   }
-
-
-
-
 
   // favoriteList 변경 후
   Map<String, dynamic> favoriteListMap = {};
@@ -107,6 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // initState 내 비동기 활용하기 위해여 필요함 WidgetsBinding.instance.addPostFrameCallback
     // call url from local
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      authAnon();
       _favoriteRead();
     });
 
@@ -137,8 +121,15 @@ class _MyHomePageState extends State<MyHomePage> {
                 return SafeArea(child:
                     PageView.builder(
                         scrollDirection: Axis.vertical,
-                        itemCount:files.length,
+                        // itemCount:files.length,
                         itemBuilder: (context, index) {
+
+                          index = index % files.length;
+                          if (index == 0){
+                            print('shuffle work');
+                            files.shuffle();
+                          }
+
                           return ReelItem(
                             index: index,
                             url: files[index].url,

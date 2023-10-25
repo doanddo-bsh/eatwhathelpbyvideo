@@ -32,7 +32,16 @@ class FirebaseApi {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/${ref.name}');
 
-    await ref.writeToFile(file);
+    print('try downloadFile work');
+    try {
+      await FirebaseStorage.instance
+          .ref('version_002/${ref.name}')
+          .writeToFile(file);
+    } on FirebaseException catch (e) {
+      // e.g, e.code == 'canceled'
+    }
+
+    // await ref.writeToFile(file);
   }
 
 }
