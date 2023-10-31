@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -5,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import '../component/auth.dart';
 import 'reelFavoritePage.dart';
-import 'package:gif_view/gif_view.dart';
+// import 'package:gif_view/gif_view.dart';
 import 'videoPage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:share_plus/share_plus.dart';
@@ -27,18 +28,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   // 익명 로그임
   final AuthService _auth = AuthService();
-
-  Future<void> authAnon() async {
-    dynamic result = await _auth.signInAnon();
-
-    if (result == null) {
-      print('@@ error signing in');
-    } else {
-      print('@@ signed in');
-      print(result); // return Instance of UserModel
-      print(result.uid); // return uid value in UserModel class
-    }
-  }
 
   // favoriteList 변경 후
   Map<String, dynamic> favoriteListMap = {};
@@ -84,68 +73,83 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   late Future<List<FirebaseFile>> futureFiles ;
+  late Future<User?> futureAuth ;
 
   @override
   void initState() {
     // initState 내 비동기 활용하기 위해여 필요함 WidgetsBinding.instance.addPostFrameCallback
     // call url from local
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      authAnon();
+      // futureAuth = _auth.signInAnon();
+      // futureFiles = ;
       _favoriteRead();
     });
-
-    super.initState();
-
-    futureFiles = FirebaseApi.listAll('version_002/');
-
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<FirebaseFile>>(
-        future: futureFiles,
-        builder: (context, snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.waiting:
-              return Center(child: CircularProgressIndicator());
-            default:
-              if (snapshot.hasError) {
-                return Center(child: Text('some error occurred!'));
-              } else {
-                final files = snapshot.data!;
-                final nameUrlMap =
-                  Map.fromIterable(files,
-                      key: (v) => v.name,
-                      value: (v) => v.url
-                  );
-                return SafeArea(child:
-                    PageView.builder(
-                        scrollDirection: Axis.vertical,
-                        // itemCount:files.length,
-                        itemBuilder: (context, index) {
+    return FutureBuilder<User?>(
+      future: _auth.signInAnon(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData == false){
+          print('FutureBuilder (snapshot.hasData == false)');
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.connectionState ==  ConnectionState.waiting){
+          print('FutureBuilder (snapshot.connectionState ==  ConnectionState.waiting)');
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.data == null){
+          print('FutureBuilder (snapshot.data == null)');
+          return Center(child: CircularProgressIndicator());
+        } else {
+          print('FutureBuilder else');
+          return FutureBuilder<List<FirebaseFile>>(
+              future: FirebaseApi.listAll('version_002/'),
+              builder: (context, snapshot) {
+                switch (snapshot.connectionState) {
+                  case ConnectionState.waiting:
+                    return Center(child: CircularProgressIndicator());
+                  default:
+                    if (snapshot.hasError) {
+                      return Center(child: Text('some error occurred! at futureFiles'));
+                    } else {
+                      final files = snapshot.data!;
+                      final nameUrlMap =
+                      Map.fromIterable(files,
+                          key: (v) => v.name,
+                          value: (v) => v.url
+                      );
+                      return SafeArea(child:
+                      PageView.builder(
+                          scrollDirection: Axis.vertical,
+                          // itemCount:files.length,
+                          itemBuilder: (context, index) {
 
-                          index = index % files.length;
-                          if (index == 0){
-                            print('shuffle work');
-                            files.shuffle();
+                            index = index % files.length;
+                            if (index == 0){
+                              print('shuffle work');
+                              files.shuffle();
+                            }
+
+                            return ReelItem(
+                              index: index,
+                              url: files[index].url,
+                              fileName: files[index].name,
+                              ref : files[index].ref,
+                              favoriteListAdd: _favoriteListAdd,
+                              favoriteListRemove: _favoriteListRemove,
+                              favoriteListMap: favoriteListMap,
+                              nameUrlMap:nameUrlMap,
+                            );
                           }
-
-                          return ReelItem(
-                            index: index,
-                            url: files[index].url,
-                            fileName: files[index].name,
-                            ref : files[index].ref,
-                            favoriteListAdd: _favoriteListAdd,
-                            favoriteListRemove: _favoriteListRemove,
-                            favoriteListMap: favoriteListMap,
-                            nameUrlMap:nameUrlMap,
-                          );
-                        }
-                    )
-                );
+                      )
+                      );
+                    }
+                }
               }
-          }
+          );
         }
+      }
     );
   }
 }
@@ -188,7 +192,7 @@ class _ReelItemState extends State<ReelItem> {
   ];
   // String? selectedValue;
 
-  final controller = GifController();
+  // final controller = GifController();
 
   // 삭제 버튼 임시 사용 test 목적
   void _deleteFlutterSecureStorage(String key) async {
@@ -604,7 +608,7 @@ class _ReelItemState extends State<ReelItem> {
                           end: Alignment.bottomCenter,
                           colors: [
                         Colors.black.withOpacity(0.0),
-                        Colors.black.withOpacity(0.5)
+                        Colors.black.withOpacity(0.5),
                       ])),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -613,48 +617,50 @@ class _ReelItemState extends State<ReelItem> {
                       Padding(
                         padding:
                             EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                        child: Column(
-                          children: [
-                            InkWell(
-                              onLongPress: () {
-                                setState(() {
-                                  favoriteCount = 0;
-                                });
-                                // writeFavoriteCount(favoriteCount);
-                                // if (favoriteCount==0){
-                                widget.favoriteListRemove(widget.fileName);
-                                // }
-                              },
-                              onTap: () {
-                                setState(() {
-                                  favoriteCount += 1;
-                                });
-                                // writeFavoriteCount(favoriteCount);
-                                // if (favoriteCount==1){
-                                widget.favoriteListAdd(
-                                    widget.fileName, favoriteCount);
-                                // }
-                              },
-                              child: const Icon(
-                                Icons.favorite,
-                                color: Colors.red,
-                              ),
+                        child: InkWell(
+                          onLongPress: () {
+                            setState(() {
+                              favoriteCount = 0;
+                            });
+                            // writeFavoriteCount(favoriteCount);
+                            // if (favoriteCount==0){
+                            widget.favoriteListRemove(widget.fileName);
+                            // }
+                          },
+                          onTap: () {
+                            setState(() {
+                              favoriteCount += 1;
+                            });
+                            // writeFavoriteCount(favoriteCount);
+                            // if (favoriteCount==1){
+                            widget.favoriteListAdd(
+                                widget.fileName, favoriteCount);
+                            // }
+                          },
+                          child: Container(
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.favorite,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(
+                                  height: 5,
+                                ),
+                                Text(
+                                  // ReelsData[index]['LikesCount'],
+                                  favoriteCount.toString(),
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14),
+                                ),
+                                SizedBox(
+                                  height: 30.0,
+                                ),
+                              ],
                             ),
-                            SizedBox(
-                              height: 5,
-                            ),
-                            Text(
-                              // ReelsData[index]['LikesCount'],
-                              favoriteCount.toString(),
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14),
-                            ),
-                            SizedBox(
-                              height: 30.0,
-                            )
-                          ],
+                          ),
                         ),
                       )
                     ],
